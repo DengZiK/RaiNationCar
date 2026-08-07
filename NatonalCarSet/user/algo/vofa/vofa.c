@@ -50,6 +50,29 @@ void VOFA_Send(const float *data, uint8_t count)
 }
 
 /* ---------------------------------------------------------------------------*/
+/*  VOFA_SendChassisTune — 底盘速度环调参帧 (8 通道, 分频节流)                 */
+/*                                                                              */
+/*  通道排布: CH1=FR目标  CH2=FR实际  CH3=FL目标  CH4=FL实际                    */
+/*            CH5=RL目标  CH6=RL实际  CH7=RR目标  CH8=RR实际                    */
+/*  分频:     每 VOFA_TUNE_DIVIDER 个控制周期发一帧 (默认 10 → 20Hz)            */
+/* ---------------------------------------------------------------------------*/
+void VOFA_SendChassisTune(const float target_rpm[4], const float actual_rpm[4])
+{
+    /* 分频节流 — 防止 8 通道阻塞发送 (~3.1ms@115200) 拖慢 200Hz 控制节拍 */
+    static uint8_t divider = 0;
+    if (++divider < VOFA_TUNE_DIVIDER) return;
+    divider = 0;
+
+    /* 8 通道: 每轮 目标转速 + 实际转速 */
+    float data[VOFA_MAX_CH];
+    for (uint8_t i = 0; i < 4U; i++) {
+        data[i * 2]     = target_rpm[i];
+        data[i * 2 + 1] = actual_rpm[i];
+    }
+    VOFA_Send(data, 8);
+}
+
+/* ---------------------------------------------------------------------------*/
 /*  VOFA_SendStatus — 死机诊断状态帧 (文本, 串口助手可读)                       */
 /*                                                                              */
 /*  输出示例:  T=123456 F=0 C=1 S=O O=0 A=12 M=00000\r\n                       */

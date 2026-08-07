@@ -51,7 +51,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-/* Definitions for WS2812_task — 已注释 (灯带 DMA 忙等 osDelay(0) 可能饿死低优先级任务) */
+/* Definitions for WS2812_task — 已注释 */
 /* osThreadId_t taskWs2812Handle; */
 /* const osThreadAttr_t taskWs2812_attributes = { */
 /*   .name = "WS2812_task", */
@@ -158,6 +158,15 @@ void MX_FREERTOS_Init(void) {
   taskChassisHandle  = osThreadNew(Chassis_task, NULL, &taskChassis_attributes);
   taskLiftHandle     = osThreadNew(Lift_task, NULL, &taskLift_attributes);
   taskValveHandle    = osThreadNew(Valve_task, NULL, &taskValve_attributes);
+  if ((defaultTaskHandle == NULL) || (taskWatchdogHandle == NULL) ||
+      (taskRemoteHandle == NULL) || (taskChassisHandle == NULL) ||
+      (taskLiftHandle == NULL) || (taskValveHandle == NULL)) {
+    Fault_Record(FAULT_MALLOC_FAILED);
+    Watchdog_StartIWDG();
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
+    }
+  }
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -186,6 +195,25 @@ void StartDefaultTask(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name)
+{
+    (void)task;
+    (void)task_name;
+    g_stack_overflow_flag = 1U;
+    Fault_Record(FAULT_STACK_OVERFLOW);
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
+    }
+}
+
+void vApplicationMallocFailedHook(void)
+{
+    Fault_Record(FAULT_MALLOC_FAILED);
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
+    }
+}
 
 /* ========================================================================= */
 /*  Watchdog 安全监控任务 — 最高优先级 (10Hz / 100ms)                          */
@@ -224,6 +252,7 @@ void Remote_task(void *argument)
 
     while (1) {
         remote_control_watchdog();   /* 快速返回, 仅检查 last_frame_tick */
+        Watchdog_TaskHeartbeat(WATCHDOG_TASK_REMOTE);
         vTaskDelayUntil(&wake, period);
     }
 }
@@ -243,6 +272,7 @@ void Chassis_task(void *argument)
 
     while (1) {
         Chassis_Update();
+        Watchdog_TaskHeartbeat(WATCHDOG_TASK_CHASSIS);
         vTaskDelayUntil(&wake, period);
     }
 }
@@ -261,6 +291,7 @@ void Lift_task(void *argument)
 
     while (1) {
         Lift_Update();
+        Watchdog_TaskHeartbeat(WATCHDOG_TASK_LIFT);
         vTaskDelayUntil(&wake, period);
     }
 }
@@ -279,6 +310,7 @@ void Valve_task(void *argument)
 
     while (1) {
         Valve_Process();
+        Watchdog_TaskHeartbeat(WATCHDOG_TASK_VALVE);
         vTaskDelayUntil(&wake, period);
     }
 }

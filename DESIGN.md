@@ -45,15 +45,15 @@
 | 项              | 配置                          |
 | --------------- | ----------------------------- |
 | MCU             | STM32F407IGH6                 |
-| 时钟源          | HSI 内部 16MHz RC 振荡器      |
-| PLLM            | 8 (16MHz / 8 = 2MHz VCO 输入) |
+| 时钟源          | HSE 外部 12MHz 晶振           |
+| PLLM            | 6 (12MHz / 6 = 2MHz VCO 输入) |
 | PLLN            | 168 (2MHz × 168 = 336MHz VCO) |
 | PLLP            | 2 (336MHz / 2 = 168MHz)       |
 | SYSCLK          | 168 MHz                       |
 | APB1 定时器时钟 | 84 MHz                        |
 | APB2 定时器时钟 | 168 MHz                       |
 
-> **注意**: 当前固件使用 HSI（内部 RC 振荡器），精度 ±1%。若对 CAN 波特率（1Mbps）或串口时序有更高精度要求，可切换至 HSE 外部晶振（需同步修改 PLLM）。
+> **注意**: 当前固件使用 HSE 外部 12MHz 晶振，PLL 输入为 2MHz，系统时钟为 168MHz。
 
 ### 2.2 FreeRTOS 配置
 

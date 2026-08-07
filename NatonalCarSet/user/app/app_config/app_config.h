@@ -224,10 +224,10 @@ extern "C" {
 /*
  * CHASSIS_ANG_ACCEL_LIMIT_RADPS2 / CHASSIS_ANG_DECEL_LIMIT_RADPS2:
  *   自转角速度 (Wz) 的平滑限速 (单位 rad/s²), 同理作用于旋转启停。
- *   满杆 Wz ≈ 0.39 rad/s, 默认减速 ~0.25s 转停。
+ *   满杆 Wz ≈ 0.698 rad/s (40°/s), DECEL=3.14 → 0.22s 转停。
  */
-#define CHASSIS_ANG_ACCEL_LIMIT_RADPS2    3.14f
-#define CHASSIS_ANG_DECEL_LIMIT_RADPS2    1.57f
+#define CHASSIS_ANG_ACCEL_LIMIT_RADPS2    6.28f
+#define CHASSIS_ANG_DECEL_LIMIT_RADPS2    3.14f
 
 /*
  * CHASSIS_RPM_SCALE: 自动补偿因子
@@ -240,10 +240,11 @@ extern "C" {
  * CHASSIS_MAX_ANGULAR_SPEED_RADPS: 底盘最大自转角速度 (rad/s)
  *
  * 摇杆推到底时, 底盘的自转速度。
- * 0.392699 rad/s = π/8 rad/s = 0.0625 转/秒 (22.5°/s)
+ * 0.698132 rad/s = 0.1111 转/秒 (40°/s)
  * 已调历程: 6.28318 (360°/s) → 3.14159 (180°/s) → 0.785398 (45°/s) → 0.392699 (22.5°/s)
+ *           → 0.589048 (33.75°/s) → 0.698132 (40°/s)
  */
-#define CHASSIS_MAX_ANGULAR_SPEED_RADPS (22.5f * 3.14159265358979f / 180.0f)
+#define CHASSIS_MAX_ANGULAR_SPEED_RADPS (40.0f * 3.14159265358979f / 180.0f)
 
 /*
  * CHASSIS_ROT_DEADBAND: 旋转通道 (CH4 / left_x) 归一化死区 (0~1)
@@ -636,8 +637,7 @@ extern "C" {
 /*    osPriorityRealtime    = 56                                               */
 /*                                                                            */
 /*  栈大小说明:                                                                */
-/*    单位是 word (ARM Cortex-M4 一字 = 4 bytes)                               */
-/*    ×4 后得到实际字节数                                                       */
+/*    CMSIS-RTOS2 的 osThreadAttr_t.stack_size 单位是 byte。                    */
 /*    栈溢出 → MemManage Fault → HardFault, 排查困难, 务必留足余量               */
 /* ========================================================================= */
 
@@ -649,13 +649,13 @@ extern "C" {
 #define PRIO_LIFT                      osPriorityNormal        /**< 升降控制 — 正常 (24), 与底盘同级 */
 #define PRIO_VALVE                     osPriorityNormal        /**< 电磁阀   — 与底盘同级 (24), 防忙等饿死 */
 
-/* --- 任务栈大小 (单位: word, ARM M4 一字 = 4 bytes) --- */
+/* --- 任务栈大小 (单位: bytes) --- */
 
-#define STACK_WATCHDOG                 256U  /**< 1024 bytes — 简单状态检查 + LED 控制 */
-#define STACK_REMOTE                   256U  /**< 1024 bytes — 空循环占位, 留足余量 */
-#define STACK_CHASSIS                  512U  /**< 2048 bytes — 浮点矩阵 + 4路PID */
-#define STACK_LIFT                     512U  /**< 2048 bytes — 浮点运算 + 位置PID */
-#define STACK_VALVE                    128U  /**< 512 bytes  — 仅 GPIO 读写 */
+#define STACK_WATCHDOG                1024U  /**< 1 KiB — 简单状态检查 + LED 控制 */
+#define STACK_REMOTE                  1024U  /**< 1 KiB — 遥控超时检查 */
+#define STACK_CHASSIS                 2048U  /**< 2 KiB — 浮点运算 + 4路PID */
+#define STACK_LIFT                    2048U  /**< 2 KiB — 浮点运算 + 串级PID */
+#define STACK_VALVE                    512U  /**< 512 bytes — GPIO 读写 */
 
 /* ========================================================================= */
 /*  10. 通用工具宏                                                             */

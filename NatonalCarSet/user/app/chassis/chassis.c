@@ -3,6 +3,7 @@
 #include "remote.h"
 #include "imu.h"
 #include "lift.h"
+#include "vofa.h"
 #include <math.h>
 
 Chassis_Handle_t g_chassis;
@@ -101,6 +102,19 @@ void Chassis_Update(void)
 {
     g_chassis.loop_count++;
 
+    /* 0. VOFA 调参输出 — 无条件发送, 确保串口链路可验证
+     *    (放在安全检查之前: 遥控未连/电机超时的急停路径也要能发数据,
+     *     否则只有遥控连上后才有波形, 链路问题无法排查)
+     *    4轮目标/实际转速 (8通道), 内部按 VOFA_TUNE_DIVIDER 分频节流
+     *    目标用上一周期值, 滞后 5ms, 对 20Hz 绘图无影响 */
+    {
+        float actual_rpm[CHASSIS_MOTOR_COUNT];
+        for (uint8_t i = 0; i < CHASSIS_MOTOR_COUNT; i++) {
+            actual_rpm[i] = (float)g_motor.feedback[i].speed_rpm;
+        }
+        VOFA_SendChassisTune(g_chassis.wheel_rpm_target, actual_rpm);
+    }
+
     /* 安全检查 */
     if (!rc_data.connected) {
         Chassis_EmergencyStop();
@@ -159,8 +173,15 @@ void Chassis_Update(void)
     g_chassis.heading_mode      = gyro_mode;
     g_chassis.heading_mode_last = gyro_mode;
 
-    /* 3. Wz — 摇杆旋转优先 / 松杆回中保持 */
-    uint8_t is_rotating = (fabsf(norm_wz) >= HEADING_WZ_DEADZONE);
+    /* 3. Wz — 摇杆旋转优先 / 松杆回中保持
+     *    is_rotating 带迟滞: 进入旋转需推过死区(CHASSIS_ROT_DEADBAND),
+     *    退出需回中(HEADING_WZ_DEADZONE), 避免死区边缘模式反复切换 */
+    uint8_t is_rotating;
+    if (g_chassis.heading_rot_last) {
+        is_rotating = (fabsf(norm_wz) >= HEADING_WZ_DEADZONE);    /* 已旋转: 回中才退出 */
+    } else {
+        is_rotating = (fabsf(norm_wz) >= CHASSIS_ROT_DEADBAND);   /* 未旋转: 推过死区才进入 */
+    }
 
     if (Lift_IsFineAdjust()) {
         /* 升降微调模式 (CH9 回中): 左摇杆已被 CH2 占用调升降,

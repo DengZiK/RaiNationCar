@@ -12,9 +12,17 @@ volatile uint32_t g_stack_overflow_flag = 0;   /* set by vApplicationStackOverfl
 static System_Status_t g_sys_status = SYS_STATUS_OK;
 static uint32_t        g_led_blink_tick = 0;
 static uint8_t         g_led_state = 0;
+static volatile uint32_t g_task_heartbeat[WATCHDOG_TASK_COUNT];
 
 /* 故障码全局变量 — 定义在此, 供 FreeRTOSConfig.h / 各 fault 入口 extern 引用 */
 volatile uint32_t g_fault_code = FAULT_NONE;
+
+void Watchdog_TaskHeartbeat(Watchdog_TaskId_t task)
+{
+    if (task < WATCHDOG_TASK_COUNT) {
+        g_task_heartbeat[task]++;
+    }
+}
 
 /* ========================================================================= */
 /*  RTC 备份寄存器 — 跨复位保留故障码                                         */
@@ -101,6 +109,9 @@ void Watchdog_Init(void)
     g_sys_status = SYS_STATUS_OK;
     g_led_blink_tick = 0;
     g_led_state = 0;
+    for (uint8_t i = 0; i < WATCHDOG_TASK_COUNT; i++) {
+        g_task_heartbeat[i] = 0;
+    }
 
     /*
      * 上次复位原因诊断:
@@ -135,6 +146,24 @@ void Watchdog_Init(void)
 void Watchdog_Update(void)
 {
     System_Status_t new_status = SYS_STATUS_OK;
+    static uint32_t last_heartbeat[WATCHDOG_TASK_COUNT];
+    static uint8_t heartbeat_initialized = 0;
+    uint8_t task_stall = 0;
+
+    if (!heartbeat_initialized) {
+        for (uint8_t i = 0; i < WATCHDOG_TASK_COUNT; i++) {
+            last_heartbeat[i] = g_task_heartbeat[i];
+        }
+        heartbeat_initialized = 1;
+    } else {
+        for (uint8_t i = 0; i < WATCHDOG_TASK_COUNT; i++) {
+            uint32_t current = g_task_heartbeat[i];
+            if (current == last_heartbeat[i]) {
+                task_stall = 1;
+            }
+            last_heartbeat[i] = current;
+        }
+    }
 
     /* 1. 调用遥控器看门狗 (更新 rc_data.connected) */
     remote_control_watchdog();
@@ -161,6 +190,13 @@ void Watchdog_Update(void)
         new_status = SYS_STATUS_MOTOR_TIMEOUT;
         Chassis_EmergencyStop();
         Lift_EmergencyStop();
+    }
+
+    if (task_stall) {
+        new_status = SYS_STATUS_TASK_STALL;
+        Chassis_EmergencyStop();
+        Lift_EmergencyStop();
+        Valve_AllOff();
     }
 
     if (new_status != SYS_STATUS_OK) {
@@ -203,11 +239,17 @@ void Watchdog_Update(void)
             HAL_GPIO_WritePin(LED_GPIO_PORT, LED_GPIO_PIN, GPIO_PIN_RESET);
             g_led_state = 0;
             break;
+
+        case SYS_STATUS_TASK_STALL:
+            HAL_GPIO_WritePin(LED_GPIO_PORT, LED_GPIO_PIN, GPIO_PIN_RESET);
+            g_led_state = 0;
+            break;
     }
 
-    /* 喂硬件看门狗 — 本任务每 100ms 执行一次, 保证 IWDG 计数器存活。
-     * 只要安全监控任务还在跑, IWDG 就不会复位; 一旦任务/内核死机, ~1s 后自动复位。 */
-    Watchdog_Feed();
+    /* 所有关键任务都有进展时才喂狗；任一任务持续卡死约 1s 后由 IWDG 自动复位。 */
+    if (!task_stall) {
+        Watchdog_Feed();
+    }
 
 #if (VOFA_DIAG_MODE == 1)
     /* 死机诊断状态帧 (每周期一帧 = 100ms) — 串口助手看文本。
