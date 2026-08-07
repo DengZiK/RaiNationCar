@@ -1,0 +1,44 @@
+# ---- 构建产物 ----
+build/
+cmake-build-*/
+out/
+Debug/
+Release/
+
+# ---- Keil MDK-ARM（保留 .uvprojx 工程文件，忽略编译产物与个人文件）----
+*.axf
+*.uvguix*
+*.uvoptx
+*.lnp
+*.sct
+*.dep
+*.dbgconf
+*.iex
+*.scvd
+*.htm
+*.build_log.htm
+**/MDK-ARM/DebugConfig/
+**/MDK-ARM/EventRecorderStub.scvd
+
+# ---- 通用编译中间文件 ----
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+*.axf
+
+# ---- CubeMX 临时文件 ----
+mx.scratch
+
+# ---- IDE / 个人配置 ----
+.idea/
+.vscode/
+.claude/
+*.iml
+
+# ---- 系统文件 ----
+Thumbs.db
+.DS_Store
