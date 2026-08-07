@@ -636,8 +636,7 @@ extern "C" {
 /*    osPriorityRealtime    = 56                                               */
 /*                                                                            */
 /*  栈大小说明:                                                                */
-/*    单位是 word (ARM Cortex-M4 一字 = 4 bytes)                               */
-/*    ×4 后得到实际字节数                                                       */
+/*    CMSIS-RTOS2 的 osThreadAttr_t.stack_size 单位是 byte。                    */
 /*    栈溢出 → MemManage Fault → HardFault, 排查困难, 务必留足余量               */
 /* ========================================================================= */
 
@@ -649,13 +648,13 @@ extern "C" {
 #define PRIO_LIFT                      osPriorityNormal        /**< 升降控制 — 正常 (24), 与底盘同级 */
 #define PRIO_VALVE                     osPriorityNormal        /**< 电磁阀   — 与底盘同级 (24), 防忙等饿死 */
 
-/* --- 任务栈大小 (单位: word, ARM M4 一字 = 4 bytes) --- */
+/* --- 任务栈大小 (单位: bytes) --- */
 
-#define STACK_WATCHDOG                 256U  /**< 1024 bytes — 简单状态检查 + LED 控制 */
-#define STACK_REMOTE                   256U  /**< 1024 bytes — 空循环占位, 留足余量 */
-#define STACK_CHASSIS                  512U  /**< 2048 bytes — 浮点矩阵 + 4路PID */
-#define STACK_LIFT                     512U  /**< 2048 bytes — 浮点运算 + 位置PID */
-#define STACK_VALVE                    128U  /**< 512 bytes  — 仅 GPIO 读写 */
+#define STACK_WATCHDOG                1024U  /**< 1 KiB — 简单状态检查 + LED 控制 */
+#define STACK_REMOTE                  1024U  /**< 1 KiB — 遥控超时检查 */
+#define STACK_CHASSIS                 2048U  /**< 2 KiB — 浮点运算 + 4路PID */
+#define STACK_LIFT                    2048U  /**< 2 KiB — 浮点运算 + 串级PID */
+#define STACK_VALVE                    512U  /**< 512 bytes — GPIO 读写 */
 
 /* ========================================================================= */
 /*  10. 通用工具宏                                                             */

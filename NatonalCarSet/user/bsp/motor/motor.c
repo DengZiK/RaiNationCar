@@ -217,8 +217,8 @@ uint8_t Motor_IsTimeout(uint8_t motor_index, uint32_t timeout_ms)
     uint32_t now   = HAL_GetTick();
     uint32_t last  = g_motor.feedback[motor_index].last_update_tick;
 
-    /* 首次尚未收到反馈视为正常 (不计超时, 由调用方判断) */
-    if (last == 0) return 0;
+    /* 上电后未收到首帧反馈也视为超时，防止断线电机被误判为正常。 */
+    if (g_motor.rx_count[motor_index] == 0U) return 1U;
 
     return ((now - last) > timeout_ms) ? 1U : 0U;
 }

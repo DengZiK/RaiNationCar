@@ -12,7 +12,16 @@ typedef enum {
     SYS_STATUS_REMOTE_LOST,
     SYS_STATUS_MOTOR_TIMEOUT,
     SYS_STATUS_ESTOP,
+    SYS_STATUS_TASK_STALL,
 } System_Status_t;
+
+typedef enum {
+    WATCHDOG_TASK_REMOTE = 0,
+    WATCHDOG_TASK_CHASSIS,
+    WATCHDOG_TASK_LIFT,
+    WATCHDOG_TASK_VALVE,
+    WATCHDOG_TASK_COUNT,
+} Watchdog_TaskId_t;
 
 /* ========================================================================= */
 /*  故障码 — 系统异常时记录, 用于"死机"后定位                                  */
@@ -36,6 +45,7 @@ typedef enum {
 
 /** @brief 故障码全局变量 — 定义于 watchdog.c, 供各故障入口写入 */
 extern volatile uint32_t g_fault_code;
+extern volatile uint32_t g_stack_overflow_flag;
 
 void Watchdog_Init(void);
 void Watchdog_Update(void);
@@ -49,6 +59,7 @@ void Watchdog_StartIWDG(void);
 
 /** @brief 喂硬件看门狗 — 由安全监控任务周期性调用 */
 void Watchdog_Feed(void);
+void Watchdog_TaskHeartbeat(Watchdog_TaskId_t task);
 
 #ifdef __cplusplus
 }
