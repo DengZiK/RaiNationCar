@@ -381,7 +381,7 @@ extern "C" {
 #define LIFT_DIR_SIGN                   (-1.0f)
 
 /* 升降机构软限位 — 单位: mm (经 LIFT_MM_TO_COUNTS 自动换算为编码器计数) */
-#define LIFT_POSITION_MIN_MM          0.0f      /**< 最低点 */
+#define LIFT_POSITION_MIN_MM          (LIFT_SCREW_LEAD_MM / 4.0f)   /**< 最低点 = 大电机 1/4 圈 (≈ 49.7mm, 导程改标定值自动跟随) */
 #define LIFT_POSITION_MAX_MM          635.0f   /**< 最高软限位 ≈ 大电机 3 圈 (3 × LIFT_SCREW_LEAD_MM) */
 #define LIFT_POSITION_MIN             LIFT_MM_TO_COUNTS(LIFT_POSITION_MIN_MM)
 #define LIFT_POSITION_MAX             LIFT_MM_TO_COUNTS(LIFT_POSITION_MAX_MM)
@@ -389,7 +389,7 @@ extern "C" {
 /*
  * 预设挡位 — 单位: mm (拨杆三档目标, 自动换算为编码器计数)
  //此处数据失真自己微调
- * 拨杆下 → LIFT_POS_DOWN  = 最低点 (LIFT_POSITION_MIN)
+ * 拨杆下 → LIFT_POS_DOWN  = 最低点 (LIFT_POSITION_MIN = 大电机 1/4 圈 ≈ 49.7mm)
  *
  * 最高挡位 < 软限位上限 (596.73mm ≈ 大电机 3 圈):
  *   挡位 480mm 距软限位还有 ~117mm 余量, CH2 微调可上探而不顶硬限位。

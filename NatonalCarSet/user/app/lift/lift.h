@@ -14,7 +14,7 @@ extern "C" {
  * 本文件只保留使用说明, 不再重复定义。
  *
  * 拨杆上 → 最高挡位 = LIFT_POS_UP_MM 480mm (≈ 大电机 2.41 圈)
- * 拨杆下 → 最低点 = LIFT_POSITION_MIN (0mm, 上电默认位置)
+ * 拨杆下 → 最低点 = LIFT_POSITION_MIN (大电机 1/4 圈 ≈ 49.7mm)
  *
  * 最高挡位 < 软限位上限 LIFT_POSITION_MAX_MM 596.73mm (≈ 大电机 3 圈):
  *   挡位 480mm 距软限位 ~117mm, CH2 微调可上探而不顶硬限位。
