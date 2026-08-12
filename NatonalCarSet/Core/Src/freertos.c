@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "ws2812.h"
+#include "ws2815.h"
 #include "app_config.h"
 #include "watchdog.h"
 #include "remote.h"
@@ -51,13 +51,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-/* Definitions for WS2812_task — 已注释 */
-/* osThreadId_t taskWs2812Handle; */
-/* const osThreadAttr_t taskWs2812_attributes = { */
-/*   .name = "WS2812_task", */
-/*   .stack_size = 256 * 4, */
-/*   .priority = (osPriority_t) osPriorityNormal, */
-/* }; */
+/* Definitions for WS2815_task */
+osThreadId_t taskWs2815Handle;
+const osThreadAttr_t taskWs2815_attributes = {
+  .name = "WS2815_task",
+  .stack_size = STACK_WS2815,
+  .priority = (osPriority_t) PRIO_WS2815,
+};
 
 /* Definitions for Watchdog_task */
 osThreadId_t taskWatchdogHandle;
@@ -114,6 +114,7 @@ void Remote_task(void *argument);
 void Chassis_task(void *argument);
 void Lift_task(void *argument);
 void Valve_task(void *argument);
+void WS2815_task(void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -152,15 +153,16 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  /* taskWs2812Handle  = osThreadNew(WS2812_task, NULL, &taskWs2812_attributes);  // 灯带任务已注释 */
+  taskWs2815Handle  = osThreadNew(WS2815_task, NULL, &taskWs2815_attributes);
   taskWatchdogHandle = osThreadNew(Watchdog_task, NULL, &taskWatchdog_attributes);
   taskRemoteHandle   = osThreadNew(Remote_task, NULL, &taskRemote_attributes);
   taskChassisHandle  = osThreadNew(Chassis_task, NULL, &taskChassis_attributes);
   taskLiftHandle     = osThreadNew(Lift_task, NULL, &taskLift_attributes);
   taskValveHandle    = osThreadNew(Valve_task, NULL, &taskValve_attributes);
-  if ((defaultTaskHandle == NULL) || (taskWatchdogHandle == NULL) ||
-      (taskRemoteHandle == NULL) || (taskChassisHandle == NULL) ||
-      (taskLiftHandle == NULL) || (taskValveHandle == NULL)) {
+  if ((defaultTaskHandle == NULL) || (taskWs2815Handle == NULL) ||
+      (taskWatchdogHandle == NULL) || (taskRemoteHandle == NULL) ||
+      (taskChassisHandle == NULL) || (taskLiftHandle == NULL) ||
+      (taskValveHandle == NULL)) {
     Fault_Record(FAULT_MALLOC_FAILED);
     Watchdog_StartIWDG();
     taskDISABLE_INTERRUPTS();
@@ -311,6 +313,25 @@ void Valve_task(void *argument)
     while (1) {
         Valve_Process();
         Watchdog_TaskHeartbeat(WATCHDOG_TASK_VALVE);
+        vTaskDelayUntil(&wake, period);
+    }
+}
+
+/* ========================================================================= */
+/*  WS2815 灯带任务 — 最低优先级 (50Hz / 20ms)                                 */
+/*                                                                            */
+/*  呼吸灯效果: 亮度按正弦变化 (灭→最亮→灭), 两条灯带同步。                    */
+/*  DMA 异步发送 + 完成中断, 任务不忙等, 不抢控制任务 CPU。                    */
+/* ========================================================================= */
+void WS2815_task(void *argument)
+{
+    (void)argument;
+
+    const TickType_t period = pdMS_TO_TICKS(WS2815_BREATH_STEP_MS);
+    TickType_t wake = xTaskGetTickCount();
+
+    while (1) {
+        WS2815_BreathUpdate();
         vTaskDelayUntil(&wake, period);
     }
 }

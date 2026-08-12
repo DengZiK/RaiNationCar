@@ -136,9 +136,9 @@ void Chassis_Update(void)
     float norm_vy = (float)(rc_data.right_x - 1000) / 800.0f * RC_JOYSTICK_SCALE;
     float norm_wz = (float)(rc_data.left_x  - 1000) / 800.0f * RC_JOYSTICK_SCALE;
 
-    /* 死区 — 前进/平移通道 (Vx/Vy) 用固定小死区 */
-    if (fabsf(norm_vx) < 0.02f) norm_vx = 0.0f;
-    if (fabsf(norm_vy) < 0.02f) norm_vy = 0.0f;
+    /* 死区 — 前进/平移通道 (Vx/Vy) 用固定小死区 (阈值见 CHASSIS_LINEAR_DEADBAND) */
+    if (fabsf(norm_vx) < CHASSIS_LINEAR_DEADBAND) norm_vx = 0.0f;
+    if (fabsf(norm_vy) < CHASSIS_LINEAR_DEADBAND) norm_vy = 0.0f;
 
     /* 死区 — 旋转通道 (CH4): 出死区后输出从 0 起线性增大 (满杆仍到满幅),
      * 避免进入/退出死区瞬间 Wz 从 0 跳变到死区边界值。

@@ -54,7 +54,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     user/bsp/motor/motor.c
     user/bsp/remote/remote.c
     user/bsp/valve/valve.c
-    Core/Src/ws2812.c
+    user/bsp/ws2815/ws2815.c
 )
 
 # Add include paths
@@ -70,6 +70,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     user/bsp/motor
     user/bsp/remote
     user/bsp/valve
+    user/bsp/ws2815
 )
 
 # Add project symbols (macros)

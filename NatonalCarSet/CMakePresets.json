@@ -6,9 +6,8 @@
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
-		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
-            "cacheVariables": {
-            }
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "cacheVariables": {}
         },
         {
             "name": "Debug",
@@ -23,6 +22,14 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "编译",
+            "description": "",
+            "displayName": "",
+            "inherits": [
+                "Release"
+            ]
         }
     ],
     "buildPresets": [

@@ -247,6 +247,16 @@ extern "C" {
 #define CHASSIS_MAX_ANGULAR_SPEED_RADPS (40.0f * 3.14159265358979f / 180.0f)
 
 /*
+ * CHASSIS_LINEAR_DEADBAND: 前进/平移通道 (Vx/Vy, 右杆 CH3/CH1) 归一化死区 (0~1)
+ *
+ * 前进 (Vx) 与横移 (Vy) 共用, 固定小死区 (不做平滑重映射)。
+ * 注意: 遥控器内置 JOYSTICK_DEADBAND=50 (归一化≈0.083) 已保证回中零位,
+ *       此宏须大于 0.083 才会真正扩大有效死区。
+ * 换算: 0.10 → 摇杆偏移约 60 (200~1800 刻度), 约 7.5% 行程。
+ */
+#define CHASSIS_LINEAR_DEADBAND          0.20f
+
+/*
  * CHASSIS_ROT_DEADBAND: 旋转通道 (CH4 / left_x) 归一化死区 (0~1)
  *
  * 误触旋转主要由升降微调占用左摇杆导致 (推 CH2 调升降时对角抖动带出 CH4),
@@ -728,6 +738,41 @@ extern "C" {
 #define HEADING_PID_MAX_I               0.2f
 #define HEADING_PID_SEP_THRESH          0.5f    /* |误差|>0.5rad 清积分 */
 #define HEADING_PID_D_ALPHA             0.1f
+
+/* ========================================================================= */
+/*  12. WS2815 灯带 (两条, PWM+DMA 驱动)                                      */
+/*                                                                            */
+/*  硬件:                                                                      */
+/*    A 条 → TIM1_CH1 (PE9), DMA2_Stream5                                    */
+/*    B 条 → TIM8_CH1 (PI5), DMA2_Stream2                                    */
+/*    TIM 计数时钟 168MHz, ARR=209 → 每 bit 1.25µs (800kHz 协议)              */
+/*                                                                            */
+/*  ★ 修改灯珠数只需改下面两个 LEN 宏, 帧缓冲自动适配, 无需改代码。            */
+/* ========================================================================= */
+
+/** @brief A 条灯珠数量 — TIM1_CH1 (PE9), 按实际灯带修改 */
+#define WS2815_STRIP_A_LEN              24U
+
+/** @brief B 条灯珠数量 — TIM8_CH1 (PI5), 按实际灯带修改 */
+#define WS2815_STRIP_B_LEN              24U
+
+/* ---- 呼吸灯参数 ---- */
+
+/** @brief 一个呼吸周期 (ms) — 灭→最亮→灭 */
+#define WS2815_BREATH_PERIOD_MS         2000U
+
+/** @brief 亮度刷新间隔 (ms) — 20ms = 50Hz, 呼吸平滑且不抢 CPU */
+#define WS2815_BREATH_STEP_MS           20U
+
+/** @brief 呼吸基础色 (RGB 0~255) — 实际亮度 = 基础色 × 正弦亮度 */
+#define WS2815_BREATH_BASE_R            0U
+#define WS2815_BREATH_BASE_G            120U
+#define WS2815_BREATH_BASE_B            255U
+
+/* ---- WS2815 任务 (呼吸灯) ---- */
+
+#define PRIO_WS2815                     osPriorityLow           /**< 效果任务, 最低优先级即可 */
+#define STACK_WS2815                    1024U                   /**< 1 KiB — 单次编码 + cosf 计算 */
 
 #ifdef __cplusplus
 }

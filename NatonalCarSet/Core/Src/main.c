@@ -36,6 +36,7 @@
 #include "valve.h"
 #include "watchdog.h"
 #include "imu.h"
+#include "ws2815.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -118,6 +119,7 @@ int main(void)
   Lift_Init();            /* 升降 PID 初始化 */
   Valve_Init();           /* 电磁阀 GPIO 初始化 */
   Watchdog_Init();        /* LED 指示初始化 */
+  WS2815_Init();          /* WS2815 灯带: DMA 中断使能 + 初始复位帧 */
   IMU_Init();             /* 板载 BMI088 初始化 + 零偏校准 (~1s, 需车静止) */
 
   /* USER CODE END 2 */

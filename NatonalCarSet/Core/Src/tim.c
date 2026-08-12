@@ -180,8 +180,10 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
     /* TIM1 clock enable */
     __HAL_RCC_TIM1_CLK_ENABLE();
   /* USER CODE BEGIN TIM1_MspInit 1 */
-    /* TIM1 CH1 DMA Init (not managed by CubeMX IOC — manual) */
-    hdma_tim1_ch1.Instance = DMA2_Stream5;
+    /* TIM1 CH1 DMA Init (not managed by CubeMX IOC — manual)
+     * 映射校验 (RM0090 Table 43): TIM1_CH1 仅可接 DMA2_Stream1/3 + CH6,
+     * 或 DMA2_Stream6 + CH0。此前用的 Stream5+CH6 是 TIM1_UP, DMA 不触发。 */
+    hdma_tim1_ch1.Instance = DMA2_Stream1;
     hdma_tim1_ch1.Init.Channel = DMA_CHANNEL_6;
     hdma_tim1_ch1.Init.Direction = DMA_MEMORY_TO_PERIPH;
     hdma_tim1_ch1.Init.PeriphInc = DMA_PINC_DISABLE;
@@ -254,7 +256,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
     GPIO_InitStruct.Pin = GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
@@ -275,7 +277,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF3_TIM8;
     HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 

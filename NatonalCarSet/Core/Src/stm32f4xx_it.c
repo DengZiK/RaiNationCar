@@ -281,9 +281,10 @@ void TIM1_BRK_TIM9_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles DMA2 stream5 global interrupt.
+  * @brief This function handles DMA2 stream1 global interrupt.
+  *        TIM1 CH1 DMA 手动配置在 DMA2_Stream1 (RM0090 Table 43)。
   */
-void DMA2_Stream5_IRQHandler(void)
+void DMA2_Stream1_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&hdma_tim1_ch1);
 }
