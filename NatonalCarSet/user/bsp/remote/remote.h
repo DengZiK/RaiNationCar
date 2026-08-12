@@ -11,12 +11,12 @@
 #define RC_SW_UP            200
 #define RC_SW_MID           1000
 #define RC_SW_DOWN          1800
-#define JOYSTICK_DEADBAND   50    /* 摇杆中位死区 (映射后值域 ±50, 约 ±6% 行程) */
 
 /* AT9S 十通道全解析结构体 */
 typedef struct
 {
-    /* 基础摇杆通道 (映射范围: 200 ~ 1800，中位1000，带防抖死区) */
+    /* 基础摇杆通道 (映射范围: 200 ~ 1800，中位1000)
+     * 死区不再在本层处理, 统一交由应用层 app_config.h 各通道死区宏控制 */
     int16_t right_x;    /* CH1: 右摇杆左右 */
     int16_t right_y;    /* CH2: 右摇杆上下 */
     int16_t left_y;     /* CH3: 左摇杆上下 */

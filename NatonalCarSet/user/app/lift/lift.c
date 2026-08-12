@@ -52,6 +52,32 @@ void Lift_Init(void)
 }
 
 /*
+ * Lift_FineSpeedCurve: CH2 微调摇杆的"分区速度曲线"
+ *
+ *   norm: 死区重映射后的归一化偏移 (-1~1, 含符号)
+ *   返回: 微调速率系数 (0~1, 符号与输入一致)
+ *
+ *   微调区间 |norm| ≤ LIFT_FINE_ZONE: 速率 = |norm| × LIFT_FINE_ZONE_GAIN (低速精细)
+ *   超出微调区间: 速率从区间端点连续爬升, 满杆 = 1.0 (满速率 LIFT_FINE_STEP_COUNTS)
+ *   区间边界连续, 无跳变; 单调递增, 不改变摇杆手感方向
+ */
+static float Lift_FineSpeedCurve(float norm)
+{
+    float abs_norm = fabsf(norm);
+    float out;
+
+    if (abs_norm <= LIFT_FINE_ZONE) {
+        out = abs_norm * LIFT_FINE_ZONE_GAIN;
+    } else {
+        float at_zone = LIFT_FINE_ZONE * LIFT_FINE_ZONE_GAIN;
+        out = at_zone + (abs_norm - LIFT_FINE_ZONE)
+                        * (1.0f - at_zone) / (1.0f - LIFT_FINE_ZONE);
+    }
+
+    return (norm < 0.0f) ? -out : out;
+}
+
+/*
  * 升降控制主循环 (100Hz)
  *   遥控器 ch9 (Se 拨杆) 三档:
  *     拨杆上 (<500)  → 目标 = 最高挡位 (LIFT_POS_UP)
@@ -105,7 +131,7 @@ void Lift_Update(void)
 
     /* 死区 + 平滑: 死区内偏移归零; 出死区后减去死区并重新归一化,
      * 移动速率从 0 起连续增大 (满杆仍到满速率), 不在死区边界跳变。
-     * LIFT_FINE_DEADBAND > 遥控器 JOYSTICK_DEADBAND=50 才真正生效 */
+     * 遥控器层已取消内置死区, LIFT_FINE_DEADBAND 即实际有效死区 */
     int32_t off_abs = (fine_offset < 0) ? -(int32_t)fine_offset : (int32_t)fine_offset;
     if (off_abs <= LIFT_FINE_DEADBAND) {
         fine_offset = 0;
@@ -134,12 +160,15 @@ void Lift_Update(void)
     }
 
     /* 2.5 CH2 连续微调目标位置 (任意档位):
-     *   摇杆偏移 ±800 → 每周期(10ms) 移动 ∓LIFT_FINE_STEP_COUNTS 计数
+     *   摇杆偏移 ±800 → 归一化 → 微调分区曲线 → 每周期(10ms) 移动 ∓(速率×LIFT_FINE_STEP_COUNTS)
+     *   微调区间 (LIFT_FINE_ZONE) 内速率更慢, 精细对位; 超出后平滑爬升到满速率。
      *   取负号: 2026-08-05 实车确认微调方向反了, 目标运动方向与摇杆偏移取反。
      *   目标以恒速率积分, 位置环继续工作 → 松杆即停、位置保持, 无模式切换跳变
      *   位置模式 (拨杆上/下) 下同样可微调: 在预设值基础上再被 CH2 推离 */
     if (g_lift.fine_adjust) {
-        g_lift.target_position -= (float)fine_offset / 800.0f * LIFT_FINE_STEP_COUNTS;
+        float fine_norm  = (float)fine_offset / 800.0f;
+        float fine_speed = Lift_FineSpeedCurve(fine_norm);
+        g_lift.target_position -= fine_speed * LIFT_FINE_STEP_COUNTS;
     }
 
     /* 3. 软限位钳位 — 目标不允许超出 [MIN, MAX], 防止顶死机构 */

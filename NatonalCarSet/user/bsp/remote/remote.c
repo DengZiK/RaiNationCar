@@ -74,22 +74,21 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 }
 
 /* ---------------------------------------------------------------------------*/
-/*  通用通道数据转换 (在映射后的 200~1800 值域上做死区，保证死区一致性)            */
+/*  通用通道数据转换 (仅线性映射 + 限幅, 不再内置死区)                            */
+/*  死区统一由应用层各通道宏控制 (见 app_config.h):                              */
+/*    CH3/CH1 前进/平移 → CHASSIS_LINEAR_DEADBAND                               */
+/*    CH4     旋转     → CHASSIS_ROT_DEADBAND                                   */
+/*    CH2     升降微调 → LIFT_FINE_DEADBAND                                     */
 /* ---------------------------------------------------------------------------*/
 static int16_t sbus_to_rc(uint16_t sbus_val)
 {
-    /* 先线性映射: 0~2047  ->  200~1800 */
+    /* 线性映射: 0~2047  ->  200~1800 */
     int32_t mapped = (int32_t)(sbus_val * 1600 / 2047) + 200;
     /* 限幅到 [200, 1800] */
     if (mapped > 1800) mapped = 1800;
     if (mapped < 200)  mapped = 200;
 
-    int32_t offset = mapped - 1000;
-
-    /* 中位死区 (在映射后的值域上判断，±50 对应摇杆行程约 ±6%) */
-    if (offset > -JOYSTICK_DEADBAND && offset < JOYSTICK_DEADBAND) offset = 0;
-
-    return (int16_t)(offset + 1000);
+    return (int16_t)mapped;
 }
 
 /* ---------------------------------------------------------------------------*/

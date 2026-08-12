@@ -250,11 +250,10 @@ extern "C" {
  * CHASSIS_LINEAR_DEADBAND: 前进/平移通道 (Vx/Vy, 右杆 CH3/CH1) 归一化死区 (0~1)
  *
  * 前进 (Vx) 与横移 (Vy) 共用, 固定小死区 (不做平滑重映射)。
- * 注意: 遥控器内置 JOYSTICK_DEADBAND=50 (归一化≈0.083) 已保证回中零位,
- *       此宏须大于 0.083 才会真正扩大有效死区。
- * 换算: 0.10 → 摇杆偏移约 60 (200~1800 刻度), 约 7.5% 行程。
+ * 遥控器层已取消内置死区 (见 remote.c), 本宏即实际有效死区, 直接生效。
+ * 换算: 0.05 → 摇杆偏移约 30 (200~1800 刻度), 约 3.75% 行程。
  */
-#define CHASSIS_LINEAR_DEADBAND          0.20f
+#define CHASSIS_LINEAR_DEADBAND          0.05f
 
 /*
  * CHASSIS_ROT_DEADBAND: 旋转通道 (CH4 / left_x) 归一化死区 (0~1)
@@ -263,7 +262,7 @@ extern "C" {
  * 已通过加大 LIFT_FINE_DEADBAND + 微调期间强制 Wz=0 抑制, 故旋转死区可减小。
  *
  * 换算: 0.05 → 摇杆偏移约 30 (200~1800 刻度), 约 3.75% 行程;
- * 低于遥控器内置 JOYSTICK_DEADBAND=50 时, 有效死区由遥控器 50 决定。
+ * 遥控器层已取消内置死区 (见 remote.c), 本宏即实际有效死区。
  * 死区边界做平滑: 出死区后输出从 0 起线性增大 (见 chassis.c)。
  */
 #define CHASSIS_ROT_DEADBAND             0.05f
@@ -410,11 +409,28 @@ extern "C" {
  *   - 需要更快 → 加大此值; 需要更精细 → 减小此值
  *
  *   LIFT_FINE_DEADBAND: 摇杆中位死区 (映射后 200~1800, 中位1000)
- *   需大于遥控器内置 JOYSTICK_DEADBAND=50 才真正生效 (合计有效死区 = 此值)。
+ *   遥控器层已取消内置死区 (见 remote.c), 本宏即实际有效死区。
  *   死区边界做平滑: 出死区后移动速率从 0 起线性增大 (见 lift.c)
  */
 #define LIFT_FINE_STEP_COUNTS          600
 #define LIFT_FINE_DEADBAND             200
+
+/*
+ * LIFT_FINE_ZONE / LIFT_FINE_ZONE_GAIN: CH2 微调"分区速度曲线"
+ *
+ * 出死区后, 摇杆偏移 (归一化 0~1) 先按微调区间分段:
+ *   - 偏移 ≤ LIFT_FINE_ZONE → 微调区间: 速率 = 偏移 × LIFT_FINE_ZONE_GAIN
+ *     (比线性更慢, 用于精细对位; 摇杆小幅推动时升降移动极慢)
+ *   - 偏移 >  LIFT_FINE_ZONE → 速率从区间端点平滑爬升, 满杆仍达满速率
+ *   - 两段在区间边界处连续, 无跳变 (见 lift.c 的 Lift_FineSpeedCurve)
+ *
+ * 例 (ZONE=0.30, GAIN=0.30):
+ *   摇杆推到 30% → 速率仅为线性的 30% (低速精调)
+ *   摇杆推满     → 速率仍为 LIFT_FINE_STEP_COUNTS (快速走全程)
+ * 想要更粗旷/更精细 → 调大/调小 ZONE 或 GAIN
+ */
+#define LIFT_FINE_ZONE                  0.30f
+#define LIFT_FINE_ZONE_GAIN             0.30f
 
 /* ========================================================================= */
 /*  5. PID 控制器默认参数                                                      */
